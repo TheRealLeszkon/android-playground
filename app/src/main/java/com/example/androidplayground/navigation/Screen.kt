@@ -16,3 +16,10 @@ sealed class Screen(val route: String) {
             "demo_detail/$demoName"
     }
 }
+
+// Top-level helper functions
+fun createFeatureRoute(featureName: String): String =
+    Screen.FeatureDetail.createRoute(featureName)
+
+fun createDemoRoute(demoName: String): String =
+    Screen.DemoDetail.createRoute(demoName)

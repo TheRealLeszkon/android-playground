@@ -6,6 +6,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.androidplayground.ui.demos.DemoDetailScreen
+import com.example.androidplayground.ui.demos.DemoListScreen
+import com.example.androidplayground.ui.features.FeatureDetailScreen
+import com.example.androidplayground.ui.features.FeatureListScreen
+import com.example.androidplayground.ui.home.HomeScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -64,29 +69,4 @@ fun NavGraph(navController: NavHostController) {
             )
         }
     }
-}
-
-@Composable
-fun DemoDetailScreen(demoName: String, navController: NavHostController) {
-    TODO("Not yet implemented")
-}
-
-@Composable
-fun FeatureDetailScreen(featureName: String, navController: NavHostController) {
-    TODO("Not yet implemented")
-}
-
-@Composable
-fun DemoListScreen(x0: NavHostController) {
-    TODO("Not yet implemented")
-}
-
-@Composable
-fun FeatureListScreen(x0: NavHostController) {
-    TODO("Not yet implemented")
-}
-
-@Composable
-fun HomeScreen(x0: NavHostController) {
-    TODO("Not yet implemented")
 }
