@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.androidplayground.ui.demos.tiltpong.TiltPongScreen
 
 private val ScreenBackground = Color(0xFFF9F9F9)
 private val AccentGreen = Color(0xFF3CDA84)
@@ -30,6 +31,18 @@ private val AccentGreen = Color(0xFF3CDA84)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DemoDetailScreen(
+    demoName: String,
+    navController: NavController
+) {
+    when (demoName) {
+        "Tilt Pong" -> TiltPongScreen(navController = navController)
+        else -> DemoDetailPlaceholder(demoName = demoName, navController = navController)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DemoDetailPlaceholder(
     demoName: String,
     navController: NavController
 ) {
