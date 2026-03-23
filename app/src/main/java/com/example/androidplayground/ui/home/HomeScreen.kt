@@ -84,7 +84,7 @@ fun HomeScreen(navController: NavController) {
 
             // ── Subtitle ──
             Text(
-                text = "A curated laboratory for testing advanced UI components, animations, and Material 3 design patterns.",
+                text = "A hands-on laboratory for testing device capabilities, sensors, and real-time interactive demos.",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     color = SubtitleColor,
                     lineHeight = 26.sp
