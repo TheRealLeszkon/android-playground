@@ -27,7 +27,6 @@ class HapticLabViewModel : ViewModel() {
         } catch (_: Exception) { }
     }
 
-    // ── System Constants ──
 
     fun playSystemConstant(view: View, constant: Int) {
         try {
@@ -35,7 +34,6 @@ class HapticLabViewModel : ViewModel() {
         } catch (_: Exception) { }
     }
 
-    // ── Predefined Effects (SDK 29+) ──
 
     fun playPredefinedEffect(context: Context, effectId: Int) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

@@ -20,22 +20,18 @@ fun NavGraph(navController: NavHostController) {
         startDestination = Screen.Home.route
     ) {
 
-        // Home
         composable(Screen.Home.route) {
             HomeScreen(navController)
         }
 
-        // Feature List
         composable(Screen.FeatureList.route) {
             FeatureListScreen(navController)
         }
 
-        // Demo List
         composable(Screen.DemoList.route) {
             DemoListScreen(navController)
         }
 
-        // Feature Detail (Dynamic)
         composable(
             route = Screen.FeatureDetail.route,
             arguments = listOf(
@@ -52,7 +48,6 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // Demo Detail (Dynamic)
         composable(
             route = Screen.DemoDetail.route,
             arguments = listOf(

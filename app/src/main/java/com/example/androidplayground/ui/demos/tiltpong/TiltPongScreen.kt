@@ -76,7 +76,7 @@ fun TiltPongScreen(
 
     var showStats by remember { mutableStateOf(false) }
 
-    // Start / stop sensor
+
     DisposableEffect(Unit) {
         viewModel.startSensor(context)
         onDispose { viewModel.stopSensor() }
@@ -130,7 +130,6 @@ fun TiltPongScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ── Score bar ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -155,7 +154,6 @@ fun TiltPongScreen(
                 )
             }
 
-            // ── Collapsible Stats Panel ──
             AnimatedVisibility(
                 visible = showStats,
                 enter = expandVertically(),
@@ -177,7 +175,6 @@ fun TiltPongScreen(
                 }
             }
 
-            // ── Game canvas ──
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -265,7 +262,6 @@ fun TiltPongScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ── Hint ──
             Text(
                 text = "Tilt your device to move the paddle",
                 style = MaterialTheme.typography.bodyMedium.copy(color = SubtitleColor),

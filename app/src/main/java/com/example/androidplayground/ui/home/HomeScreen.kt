@@ -2,7 +2,9 @@ package com.example.androidplayground.ui.home
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -40,7 +43,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.androidplayground.BuildConfig
 import com.example.androidplayground.navigation.Screen
+import com.example.androidplayground.sandbox.DevSandboxActivity
 
 // Accent color from DESIGN.md
 private val AccentGreen = Color(0xFF3CDA84)
@@ -49,6 +54,7 @@ private val CardBackground = Color(0xFFFFFFFF)
 private val ScreenBackground = Color(0xFFF9F9F9)
 private val SubtitleColor = Color(0xFF49454F)
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(navController: NavController) {
     Scaffold(
@@ -63,26 +69,39 @@ fun HomeScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(72.dp))
 
-            // ── Hero title ──
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = Color.Black)) {
-                        append("Android\n")
+            val context = LocalContext.current
+            Box(
+                modifier = Modifier.combinedClickable(
+                    role = Role.Button,
+                    onClick = {},
+                    onLongClick = {
+                        if (BuildConfig.DEBUG) {
+                            context.startActivity(
+                                Intent(context, DevSandboxActivity::class.java)
+                            )
+                        }
                     }
-                    withStyle(SpanStyle(color = AccentGreen)) {
-                        append("Playground")
-                    }
-                },
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 48.sp,
-                    lineHeight = 52.sp
                 )
-            )
+            ) {
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(color = Color.Black)) {
+                            append("Android\n")
+                        }
+                        withStyle(SpanStyle(color = AccentGreen)) {
+                            append("Playground")
+                        }
+                    },
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 48.sp,
+                        lineHeight = 52.sp
+                    )
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Subtitle ──
             Text(
                 text = "A hands-on laboratory for testing device capabilities, sensors, and real-time interactive demos.",
                 style = MaterialTheme.typography.bodyLarge.copy(
@@ -93,7 +112,6 @@ fun HomeScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(64.dp))
 
-            // ── Cards ──
             MenuCard(
                 categoryLabel = "DISCOVERY",
                 title = "Explore Features",
@@ -116,7 +134,6 @@ fun HomeScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val context = LocalContext.current
             MenuCard(
                 categoryLabel = "REFERENCE",
                 title = "Android Docs",
