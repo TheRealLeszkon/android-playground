@@ -27,10 +27,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".ui.notifications.FeatureDescriptionActivity"
-            android:exported="false"
-            android:theme="@style/Theme.AndroidPlayground" />
     </application>
 
 </manifest>

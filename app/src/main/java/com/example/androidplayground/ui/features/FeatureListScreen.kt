@@ -48,11 +48,12 @@ private val ScreenBackground = Color(0xFFF9F9F9)
 private data class FeatureItem(
     val name: String,
     val icon: ImageVector,
-    val description: String
+    val description: String,
+    val routeKey: String = name
 )
 
 private val features = listOf(
-    FeatureItem("Sensors", Icons.Outlined.Sensors, "Access device sensor data in real time"),
+    FeatureItem("Sensors", Icons.Outlined.Sensors, "Access device sensor data in real time", routeKey = "sensor_dashboard"),
     FeatureItem("Haptics", Icons.Outlined.Vibration, "Explore haptic feedback patterns"),
     FeatureItem("Notifications", Icons.Outlined.Notifications, "Build rich notification channels")
 )
@@ -98,7 +99,7 @@ fun FeatureListScreen(navController: NavController) {
                     index = index + 1,
                     feature = feature,
                     onClick = {
-                        navController.navigate(Screen.FeatureDetail.createRoute(feature.name))
+                        navController.navigate(Screen.FeatureDetail.createRoute(feature.routeKey))
                     }
                 )
             }

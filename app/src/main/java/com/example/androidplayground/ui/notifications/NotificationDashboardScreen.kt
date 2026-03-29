@@ -1,7 +1,6 @@
 package com.example.androidplayground.ui.notifications
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,27 +23,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import com.example.androidplayground.navigation.Screen
 
-// Kinetic Minimalist Colors
 private val SurfaceColor = Color(0xFFF9F9F9)
 private val SurfaceLowest = Color(0xFFFFFFFF)
 private val PrimaryGreen = Color(0xFF3CDA84)
 private val PrimaryDark = Color(0xFF006D3B)
-private val GhostBorder = Color(0x26BBCABC) // 15% opacity of #bbcabc
+private val GhostBorder = Color(0x26BBCABC)
 private val TextMain = Color(0xFF000000)
 private val TextMuted = Color(0xFF49454F)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationDashboardScreen(navController: NavController) {
-    val context = LocalContext.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val notificationHelper = remember { NotificationHelper(context) }
 
     var hasNotificationPermission by remember {
@@ -89,7 +87,7 @@ fun NotificationDashboardScreen(navController: NavController) {
             DashboardContent(
                 modifier = Modifier.padding(padding),
                 notificationHelper = notificationHelper,
-                context = context
+                navController = navController
             )
         } else {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -113,7 +111,7 @@ fun NotificationDashboardScreen(navController: NavController) {
 private fun DashboardContent(
     modifier: Modifier,
     notificationHelper: NotificationHelper,
-    context: android.content.Context
+    navController: NavController
 ) {
     var title by remember { mutableStateOf("New Message") }
     var text by remember { mutableStateOf("You have received a new update.") }
@@ -129,10 +127,7 @@ private fun DashboardContent(
     val scrollState = rememberScrollState()
 
     val openFeatureDesc = { key: String ->
-        val intent = Intent(context, FeatureDescriptionActivity::class.java).apply {
-            putExtra(FeatureDescriptionActivity.EXTRA_FEATURE_ID, key)
-        }
-        context.startActivity(intent)
+        navController.navigate(Screen.FeatureDetail.createRoute("notification_info:$key"))
     }
 
     Column(

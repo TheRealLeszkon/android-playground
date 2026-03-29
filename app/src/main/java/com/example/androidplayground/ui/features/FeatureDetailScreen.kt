@@ -25,6 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.androidplayground.ui.hapticlab.HapticLabScreen
 import com.example.androidplayground.ui.notifications.NotificationDashboardScreen
+import com.example.androidplayground.ui.notifications.NotificationInfoScreen
+import com.example.androidplayground.ui.sensors.SensorDashboardScreen
+import com.example.androidplayground.ui.sensors.SensorInfoScreen
 
 private val ScreenBackground = Color(0xFFF9F9F9)
 private val AccentGreen = Color(0xFF3CDA84)
@@ -35,9 +38,21 @@ fun FeatureDetailScreen(
     featureName: String,
     navController: NavController
 ) {
-    when (featureName) {
-        "Haptics" -> HapticLabScreen(navController = navController)
-        "Notifications" -> NotificationDashboardScreen(navController = navController)
+    when {
+        featureName == "sensor_dashboard" -> SensorDashboardScreen(navController = navController)
+        featureName == "Haptics" -> HapticLabScreen(navController = navController)
+        featureName == "Notifications" -> NotificationDashboardScreen(navController = navController)
+
+        featureName.startsWith("sensor_info:") -> {
+            val type = featureName.substringAfter(":")
+            SensorInfoScreen(sensorType = type, navController = navController)
+        }
+
+        featureName.startsWith("notification_info:") -> {
+            val type = featureName.substringAfter(":")
+            NotificationInfoScreen(featureId = type, navController = navController)
+        }
+
         else -> FeatureDetailPlaceholder(featureName = featureName, navController = navController)
     }
 }
