@@ -39,6 +39,11 @@ class SensorDashboardViewModel : ViewModel(), SensorEventListener {
     private var rawGyro = XYZReading()
     private var rawLight = 0f
 
+    // Smoothed values (low-pass filtered)
+    private var smoothAccel = XYZReading()
+    private var smoothGyro = XYZReading()
+    private var smoothLight = 0f
+
     // History buffers maintained inside the frame loop
     private val accelBuffer = ArrayDeque<XYZReading>(BUFFER_SIZE)
     private val gyroBuffer = ArrayDeque<XYZReading>(BUFFER_SIZE)
@@ -92,29 +97,42 @@ class SensorDashboardViewModel : ViewModel(), SensorEventListener {
     }
 
     private fun tick() {
-        // Append to history buffers
+        // Low-pass filter: blend raw into smoothed
+        smoothAccel = XYZReading(
+            x = smoothAccel.x + SMOOTHING * (rawAccel.x - smoothAccel.x),
+            y = smoothAccel.y + SMOOTHING * (rawAccel.y - smoothAccel.y),
+            z = smoothAccel.z + SMOOTHING * (rawAccel.z - smoothAccel.z)
+        )
+        smoothGyro = XYZReading(
+            x = smoothGyro.x + SMOOTHING * (rawGyro.x - smoothGyro.x),
+            y = smoothGyro.y + SMOOTHING * (rawGyro.y - smoothGyro.y),
+            z = smoothGyro.z + SMOOTHING * (rawGyro.z - smoothGyro.z)
+        )
+        smoothLight += SMOOTHING * (rawLight - smoothLight)
+
+        // Append smoothed values to history buffers
         if (accelBuffer.size >= BUFFER_SIZE) accelBuffer.removeFirst()
-        accelBuffer.addLast(rawAccel)
+        accelBuffer.addLast(smoothAccel)
 
         if (gyroBuffer.size >= BUFFER_SIZE) gyroBuffer.removeFirst()
-        gyroBuffer.addLast(rawGyro)
+        gyroBuffer.addLast(smoothGyro)
 
         if (lightBuffer.size >= BUFFER_SIZE) lightBuffer.removeFirst()
-        lightBuffer.addLast(rawLight)
+        lightBuffer.addLast(smoothLight)
 
         // Normalize accelerometer XY to [-1, 1] for the tilt dot
-        val normX = (rawAccel.x / GRAVITY).coerceIn(-1f, 1f)
-        val normY = (rawAccel.y / GRAVITY).coerceIn(-1f, 1f)
+        val normX = (smoothAccel.x / GRAVITY).coerceIn(-1f, 1f)
+        val normY = (smoothAccel.y / GRAVITY).coerceIn(-1f, 1f)
 
         _state.value = SensorDashboardUiState(
-            accelValues = rawAccel,
+            accelValues = smoothAccel,
             accelHistory = accelBuffer.toList(),
             accelPoint = normX to normY,
 
-            gyroValues = rawGyro,
+            gyroValues = smoothGyro,
             gyroHistory = gyroBuffer.toList(),
 
-            lightValue = rawLight,
+            lightValue = smoothLight,
             lightHistory = lightBuffer.toList()
         )
     }
@@ -127,5 +145,6 @@ class SensorDashboardViewModel : ViewModel(), SensorEventListener {
     companion object {
         const val BUFFER_SIZE = 50
         private const val GRAVITY = 9.81f
+        private const val SMOOTHING = 0.15f
     }
 }

@@ -42,13 +42,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -68,7 +65,6 @@ private val GraphBlue = Color(0xFF42A5F5)
 private val GraphYellow = Color(0xFFFFCA28)
 private val GraphBackground = Color(0xFFF5F5F5)
 private val GridLineColor = Color(0xFFE0E0E0)
-private val GridLabelColor = Color(0xFF9E9E9E)
 
 private val DotBoundaryColor = Color(0xFFE0E0E0)
 private val DotCrosshairColor = Color(0xFFEEEEEE)
@@ -177,7 +173,7 @@ private fun AccelerometerCard(
         Spacer(modifier = Modifier.height(16.dp))
         XYZLegend()
         Spacer(modifier = Modifier.height(8.dp))
-        XYZGraph(history = history)
+        XYZGraph(history = history, minVal = -15f, maxVal = 15f)
     }
 }
 
@@ -192,7 +188,7 @@ private fun GyroscopeCard(
         Spacer(modifier = Modifier.height(16.dp))
         XYZLegend()
         Spacer(modifier = Modifier.height(8.dp))
-        XYZGraph(history = history)
+        XYZGraph(history = history, minVal = -5f, maxVal = 5f)
     }
 }
 
@@ -223,7 +219,7 @@ private fun LightSensorCard(
             trackColor = GraphBackground
         )
         Spacer(modifier = Modifier.height(16.dp))
-        SingleLineGraph(history = history, lineColor = GraphYellow)
+        SingleLineGraph(history = history, lineColor = GraphYellow, minVal = 0f, maxVal = 2000f)
     }
 }
 
@@ -388,43 +384,29 @@ private fun AccelXYVisualization(accelPoint: Pair<Float, Float>) {
             // Moving dot
             val dotX = centerX + accelPoint.first * radius
             val dotY = centerY - accelPoint.second * radius
-            val dotRadius = 10f
 
-            // Dot shadow
-            drawCircle(
-                color = DotColor.copy(alpha = 0.2f),
-                radius = dotRadius + 6f,
-                center = Offset(dotX, dotY)
-            )
-            // Dot fill
             drawCircle(
                 color = DotColor,
-                radius = dotRadius,
+                radius = radius * 0.3f,
                 center = Offset(dotX, dotY)
-            )
-            // Dot highlight
-            drawCircle(
-                color = Color.White.copy(alpha = 0.5f),
-                radius = dotRadius * 0.4f,
-                center = Offset(dotX - dotRadius * 0.2f, dotY - dotRadius * 0.2f)
             )
         }
     }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Graph Components (with grid lines + value markers)
+// Graph Components (with grid lines)
 // ═══════════════════════════════════════════════════════════════
 
 @Composable
-private fun XYZGraph(history: List<XYZReading>) {
+private fun XYZGraph(
+    history: List<XYZReading>,
+    minVal: Float,
+    maxVal: Float
+) {
     if (history.isEmpty()) return
 
-    val allValues = history.flatMap { listOf(it.x, it.y, it.z) }
-    val minVal = allValues.min()
-    val maxVal = allValues.max()
     val range = (maxVal - minVal).coerceAtLeast(1f)
-    val textMeasurer = rememberTextMeasurer()
 
     Canvas(
         modifier = Modifier
@@ -433,61 +415,53 @@ private fun XYZGraph(history: List<XYZReading>) {
             .clip(RoundedCornerShape(12.dp))
             .background(GraphBackground)
     ) {
-        val labelPadding = 40f
-        val topPadding = 12f
-        val bottomPadding = 12f
-        val graphLeft = labelPadding
-        val graphRight = size.width - 8f
+        val padding = 12f
+        val graphLeft = padding
+        val graphRight = size.width - padding
         val graphWidth = graphRight - graphLeft
-        val graphTop = topPadding
-        val graphBottom = size.height - bottomPadding
+        val graphTop = padding
+        val graphBottom = size.height - padding
         val graphHeight = graphBottom - graphTop
 
-        // Draw grid and labels
-        drawGridWithLabels(
-            textMeasurer = textMeasurer,
-            minVal = minVal,
-            maxVal = maxVal,
-            graphLeft = graphLeft,
-            graphRight = graphRight,
-            graphTop = graphTop,
-            graphBottom = graphBottom,
-            lineCount = 5
-        )
+        drawGrid(graphLeft, graphRight, graphTop, graphBottom, lineCount = 5)
 
-        // Draw data lines
-        fun drawDataLine(values: List<Float>, color: Color) {
-            if (values.size < 2) return
-            val path = Path()
-            val step = graphWidth / (SensorDashboardViewModel.BUFFER_SIZE - 1).toFloat()
+        clipRect(left = graphLeft, top = graphTop, right = graphRight, bottom = graphBottom) {
+            fun drawDataLine(values: List<Float>, color: Color, opacity: Float) {
+                if (values.size < 2) return
+                val path = Path()
+                val step = graphWidth / (SensorDashboardViewModel.BUFFER_SIZE - 1).toFloat()
 
-            values.forEachIndexed { index, value ->
-                val x = graphLeft + index * step
-                val y = graphTop + graphHeight * (1f - (value - minVal) / range)
-                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                values.forEachIndexed { index, value ->
+                    val clampedValue = value.coerceIn(minVal, maxVal)
+                    val x = graphLeft + index * step
+                    val y = graphTop + graphHeight * (1f - (clampedValue - minVal) / range)
+                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+
+                drawPath(
+                    path = path,
+                    color = color.copy(alpha = opacity),
+                    style = Stroke(width = 4f, cap = StrokeCap.Round)
+                )
             }
 
-            drawPath(
-                path = path,
-                color = color,
-                style = Stroke(width = 2.5f, cap = StrokeCap.Round)
-            )
+            drawDataLine(history.map { it.x }, GraphRed, 1.0f)
+            drawDataLine(history.map { it.y }, GraphGreen, 0.85f)
+            drawDataLine(history.map { it.z }, GraphBlue, 0.7f)
         }
-
-        drawDataLine(history.map { it.x }, GraphRed)
-        drawDataLine(history.map { it.y }, GraphGreen)
-        drawDataLine(history.map { it.z }, GraphBlue)
     }
 }
 
 @Composable
-private fun SingleLineGraph(history: List<Float>, lineColor: Color) {
+private fun SingleLineGraph(
+    history: List<Float>,
+    lineColor: Color,
+    minVal: Float,
+    maxVal: Float
+) {
     if (history.isEmpty()) return
 
-    val minVal = history.min()
-    val maxVal = history.max()
     val range = (maxVal - minVal).coerceAtLeast(1f)
-    val textMeasurer = rememberTextMeasurer()
 
     Canvas(
         modifier = Modifier
@@ -498,47 +472,36 @@ private fun SingleLineGraph(history: List<Float>, lineColor: Color) {
     ) {
         if (history.size < 2) return@Canvas
 
-        val labelPadding = 40f
-        val topPadding = 12f
-        val bottomPadding = 12f
-        val graphLeft = labelPadding
-        val graphRight = size.width - 8f
+        val padding = 12f
+        val graphLeft = padding
+        val graphRight = size.width - padding
         val graphWidth = graphRight - graphLeft
-        val graphTop = topPadding
-        val graphBottom = size.height - bottomPadding
+        val graphTop = padding
+        val graphBottom = size.height - padding
         val graphHeight = graphBottom - graphTop
 
-        drawGridWithLabels(
-            textMeasurer = textMeasurer,
-            minVal = minVal,
-            maxVal = maxVal,
-            graphLeft = graphLeft,
-            graphRight = graphRight,
-            graphTop = graphTop,
-            graphBottom = graphBottom,
-            lineCount = 5
-        )
+        drawGrid(graphLeft, graphRight, graphTop, graphBottom, lineCount = 5)
 
-        val step = graphWidth / (SensorDashboardViewModel.BUFFER_SIZE - 1).toFloat()
-        val path = Path()
-        history.forEachIndexed { index, value ->
-            val x = graphLeft + index * step
-            val y = graphTop + graphHeight * (1f - (value - minVal) / range)
-            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        clipRect(left = graphLeft, top = graphTop, right = graphRight, bottom = graphBottom) {
+            val step = graphWidth / (SensorDashboardViewModel.BUFFER_SIZE - 1).toFloat()
+            val path = Path()
+            history.forEachIndexed { index, value ->
+                val clampedValue = value.coerceIn(minVal, maxVal)
+                val x = graphLeft + index * step
+                val y = graphTop + graphHeight * (1f - (clampedValue - minVal) / range)
+                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+
+            drawPath(
+                path = path,
+                color = lineColor,
+                style = Stroke(width = 4f, cap = StrokeCap.Round)
+            )
         }
-
-        drawPath(
-            path = path,
-            color = lineColor,
-            style = Stroke(width = 2.5f, cap = StrokeCap.Round)
-        )
     }
 }
 
-private fun DrawScope.drawGridWithLabels(
-    textMeasurer: TextMeasurer,
-    minVal: Float,
-    maxVal: Float,
+private fun DrawScope.drawGrid(
     graphLeft: Float,
     graphRight: Float,
     graphTop: Float,
@@ -546,38 +509,16 @@ private fun DrawScope.drawGridWithLabels(
     lineCount: Int
 ) {
     val graphHeight = graphBottom - graphTop
-    val range = maxVal - minVal
 
     for (i in 0 until lineCount) {
         val fraction = i.toFloat() / (lineCount - 1)
         val y = graphTop + graphHeight * fraction
-        val value = maxVal - range * fraction
 
-        // Grid line
         drawLine(
             color = GridLineColor,
             start = Offset(graphLeft, y),
             end = Offset(graphRight, y),
             strokeWidth = 1f
-        )
-
-        // Value label
-        val label = if (kotlin.math.abs(value) >= 100f) {
-            "%.0f".format(value)
-        } else {
-            "%.1f".format(value)
-        }
-
-        val textResult = textMeasurer.measure(
-            text = label,
-            style = TextStyle(fontSize = 8.sp, color = GridLabelColor)
-        )
-        drawText(
-            textLayoutResult = textResult,
-            topLeft = Offset(
-                x = 2f,
-                y = y - textResult.size.height / 2f
-            )
         )
     }
 }
