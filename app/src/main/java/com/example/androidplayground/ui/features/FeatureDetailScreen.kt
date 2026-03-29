@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.androidplayground.ui.hapticlab.HapticLabScreen
+import com.example.androidplayground.ui.notifications.NotificationDashboardScreen
 
 private val ScreenBackground = Color(0xFFF9F9F9)
 private val AccentGreen = Color(0xFF3CDA84)
@@ -36,6 +37,7 @@ fun FeatureDetailScreen(
 ) {
     when (featureName) {
         "Haptics" -> HapticLabScreen(navController = navController)
+        "Notifications" -> NotificationDashboardScreen(navController = navController)
         else -> FeatureDetailPlaceholder(featureName = featureName, navController = navController)
     }
 }
