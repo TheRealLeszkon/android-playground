@@ -10,11 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/**
- * Game state for Tilt Pong.
- *
- * All positions are normalised to 0..1 so the composable can scale to any canvas size.
- */
+
 data class PongState(
     // Ball
     val ballX: Float = 0.5f,

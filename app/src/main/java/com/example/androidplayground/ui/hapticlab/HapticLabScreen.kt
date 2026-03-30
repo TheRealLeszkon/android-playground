@@ -125,37 +125,42 @@ private fun sdkToVersion(sdk: Int): String = when (sdk) {
 
 // ── System Constants ──
 
-private data class HapticConstant(val label: String, val constant: Int)
+private data class HapticConstant(val label: String, val constant: Int, val description: String)
 
 private val systemConstants = listOf(
-    HapticConstant("Confirm", HapticFeedbackConstants.CONFIRM),
-    HapticConstant("Reject", HapticFeedbackConstants.REJECT),
-    HapticConstant("Clock Tick", HapticFeedbackConstants.CLOCK_TICK),
-    HapticConstant("Long Press", HapticFeedbackConstants.LONG_PRESS),
-    HapticConstant("Keyboard Tap", HapticFeedbackConstants.KEYBOARD_TAP),
-    HapticConstant("Virtual Key", HapticFeedbackConstants.VIRTUAL_KEY),
+    HapticConstant("Confirm", HapticFeedbackConstants.CONFIRM, "Positive confirmation feedback"),
+    HapticConstant("Reject", HapticFeedbackConstants.REJECT, "Negative error feedback"),
+    HapticConstant("Clock Tick", HapticFeedbackConstants.CLOCK_TICK, "Subtle tick for scrolling/pickers"),
+    HapticConstant("Long Press", HapticFeedbackConstants.LONG_PRESS, "Feedback for long press actions"),
+    HapticConstant("Virtual Key", HapticFeedbackConstants.VIRTUAL_KEY, "Feedback for button/key press"),
+    HapticConstant("Keyboard Tap", HapticFeedbackConstants.KEYBOARD_TAP, "Typing feedback")
 )
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SystemConstantsSection(viewModel: HapticLabViewModel) {
     val view = LocalView.current
 
     CategoryCard(label = "SYSTEM CONSTANTS") {
         Text(
-            text = "Standard haptic feedback via HapticFeedbackConstants",
+            text = "Represent UI interaction feedback. Provide consistent system-level haptics across apps.",
             style = MaterialTheme.typography.bodySmall.copy(color = SubtitleColor),
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             systemConstants.forEach { item ->
-                HapticChipButton(
-                    label = item.label,
-                    onClick = { viewModel.playSystemConstant(view, item.constant) }
-                )
+                Column {
+                    HapticChipButton(
+                        label = item.label,
+                        onClick = { viewModel.playSystemConstant(view, item.constant) }
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = item.description,
+                        style = MaterialTheme.typography.bodySmall.copy(color = SubtitleColor)
+                    )
+                }
             }
         }
     }
@@ -163,7 +168,7 @@ private fun SystemConstantsSection(viewModel: HapticLabViewModel) {
 
 // ── Predefined Effects ──
 
-private data class PredefinedItem(val label: String, val effectId: Int)
+private data class PredefinedItem(val label: String, val effectId: Int, val description: String)
 
 @Composable
 private fun PredefinedEffectsSection(viewModel: HapticLabViewModel) {
@@ -174,30 +179,35 @@ private fun PredefinedEffectsSection(viewModel: HapticLabViewModel) {
             Text(
                 text = "VibrationEffect.createPredefined() — Android 10+",
                 style = MaterialTheme.typography.bodySmall.copy(color = SubtitleColor),
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier.padding(bottom = 16.dp)
             )
             val effects = remember {
                 listOf(
-                    PredefinedItem("Click", VibrationEffect.EFFECT_CLICK),
-                    PredefinedItem("Heavy Click", VibrationEffect.EFFECT_HEAVY_CLICK),
-                    PredefinedItem("Double Click", VibrationEffect.EFFECT_DOUBLE_CLICK),
-                    PredefinedItem("Tick", VibrationEffect.EFFECT_TICK),
+                    PredefinedItem("Click", VibrationEffect.EFFECT_CLICK, "Standard short click (baseline feedback)"),
+                    PredefinedItem("Double Click", VibrationEffect.EFFECT_DOUBLE_CLICK, "Two quick consecutive clicks"),
+                    PredefinedItem("Heavy Click", VibrationEffect.EFFECT_HEAVY_CLICK, "Stronger, more forceful click"),
+                    PredefinedItem("Tick", VibrationEffect.EFFECT_TICK, "Very light, subtle tick feedback"),
                 )
             }
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(end = 4.dp)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(effects.size) { index ->
-                    val item = effects[index]
-                    FilledTonalButton(
-                        onClick = { viewModel.playPredefinedEffect(context, item.effectId) },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = AccentGreen.copy(alpha = 0.12f)
+                effects.forEach { item ->
+                    Column {
+                        FilledTonalButton(
+                            onClick = { viewModel.playPredefinedEffect(context, item.effectId) },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = AccentGreen.copy(alpha = 0.12f)
+                            )
+                        ) {
+                            Text(item.label, color = AccentGreenDark, fontWeight = FontWeight.SemiBold)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = item.description,
+                            style = MaterialTheme.typography.bodySmall.copy(color = SubtitleColor)
                         )
-                    ) {
-                        Text(item.label, color = AccentGreenDark, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
