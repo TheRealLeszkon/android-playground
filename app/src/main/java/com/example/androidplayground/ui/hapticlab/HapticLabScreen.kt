@@ -131,15 +131,16 @@ fun HapticLabScreen(
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
 
-            item { SystemConstantsSection(viewModel) }
-
-            item { PredefinedEffectsSection(viewModel) }
 
             item { OneShotBuilderSection(viewModel) }
 
             item { WaveformSequencerSection(viewModel) }
 
             item { CompositionStudioSection(viewModel) }
+
+            item { SystemConstantsSection(viewModel) }
+
+            item { PredefinedEffectsSection(viewModel) }
 
             item { Spacer(modifier = Modifier.height(32.dp)) }
         }

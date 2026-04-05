@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.ScreenRotation
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,7 +55,8 @@ private data class DemoItem(
 private val demos = listOf(
     DemoItem("Safe Cracker", Icons.Outlined.Lock, "Crack the code using haptic feedback"),
     DemoItem("Tilt Pong", Icons.Outlined.SportsEsports, "Classic pong controlled by gyroscope"),
-    DemoItem("Light Sensor Game", Icons.Outlined.LightMode, "Gameplay driven by ambient light")
+    DemoItem("Light Sensor Game", Icons.Outlined.LightMode, "Gameplay driven by ambient light"),
+    DemoItem("Device Orientation", Icons.Outlined.ScreenRotation, "Accelerometer & gyroscope demo")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
