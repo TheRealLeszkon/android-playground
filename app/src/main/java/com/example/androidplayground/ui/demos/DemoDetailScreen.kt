@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.androidplayground.ui.demos.orientation.DeviceOrientationScreen
+import com.example.androidplayground.ui.demos.safecracker.SafeCrackerScreen
 import com.example.androidplayground.ui.demos.tiltpong.TiltPongScreen
 
 private val ScreenBackground = Color(0xFFF9F9F9)
@@ -38,6 +39,7 @@ fun DemoDetailScreen(
     when (demoName) {
         "Tilt Pong" -> TiltPongScreen(navController = navController)
         "Device Orientation" -> DeviceOrientationScreen(navController = navController)
+        "Safe Cracker" -> SafeCrackerScreen(navController = navController)
         else -> DemoDetailPlaceholder(demoName = demoName, navController = navController)
     }
 }
