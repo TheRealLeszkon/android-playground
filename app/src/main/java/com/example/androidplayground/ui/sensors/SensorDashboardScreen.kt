@@ -155,9 +155,7 @@ fun SensorDashboardScreen(
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
 // Sensor Cards
-// ═══════════════════════════════════════════════════════════════
 
 @Composable
 private fun AccelerometerCard(
@@ -223,9 +221,7 @@ private fun LightSensorCard(
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
 // Reusable Components
-// ═══════════════════════════════════════════════════════════════
 
 @Composable
 private fun SensorCard(
@@ -332,9 +328,7 @@ private fun LegendItem(label: String, color: Color) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
 // Accelerometer XY Visualization
-// ═══════════════════════════════════════════════════════════════
 
 @Composable
 private fun AccelXYVisualization(accelPoint: Pair<Float, Float>) {
@@ -351,7 +345,7 @@ private fun AccelXYVisualization(accelPoint: Pair<Float, Float>) {
             val centerY = size.height / 2f
             val radius = minOf(centerX, centerY) - 8f
 
-            // Outer boundary circle
+                // Boundary
             drawCircle(
                 color = DotBoundaryColor,
                 radius = radius,
@@ -359,7 +353,7 @@ private fun AccelXYVisualization(accelPoint: Pair<Float, Float>) {
                 style = Stroke(width = 2f)
             )
 
-            // Inner guide circle
+                // Inner circle
             drawCircle(
                 color = DotBoundaryColor.copy(alpha = 0.4f),
                 radius = radius * 0.5f,
@@ -367,7 +361,7 @@ private fun AccelXYVisualization(accelPoint: Pair<Float, Float>) {
                 style = Stroke(width = 1f)
             )
 
-            // Crosshair lines
+                // Crosshairs
             drawLine(
                 color = DotCrosshairColor,
                 start = Offset(centerX - radius, centerY),
@@ -381,7 +375,7 @@ private fun AccelXYVisualization(accelPoint: Pair<Float, Float>) {
                 strokeWidth = 1f
             )
 
-            // Moving dot
+            // Indicator dot
             val dotX = centerX + accelPoint.first * radius
             val dotY = centerY - accelPoint.second * radius
 
@@ -394,9 +388,7 @@ private fun AccelXYVisualization(accelPoint: Pair<Float, Float>) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// Graph Components (with grid lines)
-// ═══════════════════════════════════════════════════════════════
+// Graph Components
 
 @Composable
 private fun XYZGraph(
