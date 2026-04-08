@@ -217,7 +217,10 @@ private fun LightSensorCard(
             trackColor = GraphBackground
         )
         Spacer(modifier = Modifier.height(16.dp))
-        SingleLineGraph(history = history, lineColor = GraphYellow, minVal = 0f, maxVal = 2000f)
+        // Auto-scale the graph ceiling to the actual data range
+        val peakLux = history.maxOrNull() ?: 0f
+        val graphMax = (peakLux * 1.3f).coerceAtLeast(10f)
+        SingleLineGraph(history = history, lineColor = GraphYellow, minVal = 0f, maxVal = graphMax)
     }
 }
 

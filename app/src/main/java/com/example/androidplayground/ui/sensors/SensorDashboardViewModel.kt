@@ -5,6 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
@@ -34,10 +35,11 @@ class SensorDashboardViewModel : ViewModel(), SensorEventListener {
 
     private var sensorManager: SensorManager? = null
 
-    // Raw sensor values written by sensor callbacks
-    private var rawAccel = XYZReading()
-    private var rawGyro = XYZReading()
-    private var rawLight = 0f
+    // Raw sensor values written by sensor callbacks.
+    // @Volatile ensures writes from the sensor thread are visible to the tick() coroutine.
+    @Volatile private var rawAccel = XYZReading()
+    @Volatile private var rawGyro = XYZReading()
+    @Volatile private var rawLight = 0f
 
     // Smoothed values (low-pass filtered)
     private var smoothAccel = XYZReading()
@@ -60,8 +62,13 @@ class SensorDashboardViewModel : ViewModel(), SensorEventListener {
         sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.let {
             sm.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
         }
-        sm.getDefaultSensor(Sensor.TYPE_LIGHT)?.let {
-            sm.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+
+        val lightSensor = sm.getDefaultSensor(Sensor.TYPE_LIGHT)
+        if (lightSensor != null) {
+            sm.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
+            Log.d(TAG, "Light sensor registered: ${lightSensor.name}")
+        } else {
+            Log.w(TAG, "No light sensor available on this device")
         }
     }
 
@@ -80,7 +87,9 @@ class SensorDashboardViewModel : ViewModel(), SensorEventListener {
                 rawGyro = XYZReading(event.values[0], event.values[1], event.values[2])
             }
             Sensor.TYPE_LIGHT -> {
-                rawLight = event.values[0]
+                val lux = event.values[0]
+                rawLight = lux
+                Log.d(TAG, "Light sensor raw: $lux lux")
             }
         }
     }
@@ -108,7 +117,7 @@ class SensorDashboardViewModel : ViewModel(), SensorEventListener {
             y = smoothGyro.y + SMOOTHING * (rawGyro.y - smoothGyro.y),
             z = smoothGyro.z + SMOOTHING * (rawGyro.z - smoothGyro.z)
         )
-        smoothLight += SMOOTHING * (rawLight - smoothLight)
+        smoothLight += LIGHT_SMOOTHING * (rawLight - smoothLight)
 
         // Append smoothed values to history buffers
         if (accelBuffer.size >= BUFFER_SIZE) accelBuffer.removeFirst()
@@ -143,8 +152,11 @@ class SensorDashboardViewModel : ViewModel(), SensorEventListener {
     }
 
     companion object {
+        private const val TAG = "SensorDashboard"
         const val BUFFER_SIZE = 50
         private const val GRAVITY = 9.81f
         private const val SMOOTHING = 0.15f
+        // Light sensor updates less frequently so use a faster alpha to converge
+        private const val LIGHT_SMOOTHING = 0.35f
     }
 }

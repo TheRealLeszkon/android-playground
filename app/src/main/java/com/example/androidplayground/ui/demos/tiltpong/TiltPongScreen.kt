@@ -44,6 +44,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -58,7 +59,8 @@ private val AccentGreen = Color(0xFF3CDA84)
 private val AccentGreenDark = Color(0xFF006D3B)
 private val ScreenBg = Color(0xFFF9F9F9)
 private val CanvasBg = Color(0xFF1C1B1F)
-private val PaddleColor = AccentGreen
+private val ActivePaddleColor = AccentGreen
+private val InactivePaddleColor = Color(0xFF49454F)
 private val BallColor = Color.White
 private val CourtLine = Color(0xFF2B2930)
 private val SubtitleColor = Color(0xFF49454F)
@@ -76,7 +78,6 @@ fun TiltPongScreen(
 
     var showStats by remember { mutableStateOf(false) }
 
-
     DisposableEffect(Unit) {
         viewModel.startSensor(context)
         onDispose { viewModel.stopSensor() }
@@ -91,7 +92,7 @@ fun TiltPongScreen(
     }
 
     // Haptic feedback on collisions
-    LaunchedEffect(state.wallHit, state.paddleHit) {
+    LaunchedEffect(state.wallHit, state.paddleHit, state.controlSwitched) {
         if (state.wallHit) {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         }
@@ -130,6 +131,7 @@ fun TiltPongScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Score + active side indicator
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -137,14 +139,28 @@ fun TiltPongScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "SCORE",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.5.sp,
-                        color = SubtitleColor
+                Column {
+                    Text(
+                        text = "SCORE",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 1.5.sp,
+                            color = SubtitleColor
+                        )
                     )
-                )
+                    val sideLabel = when (state.playerSide) {
+                        PlayerSide.TOP -> "↑ Top"
+                        PlayerSide.BOTTOM -> "↓ Bottom"
+                    }
+                    Text(
+                        text = sideLabel,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = AccentGreenDark,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.5.sp
+                        )
+                    )
+                }
                 Text(
                     text = "${state.score}",
                     style = MaterialTheme.typography.headlineMedium.copy(
@@ -167,10 +183,12 @@ fun TiltPongScreen(
                         .padding(14.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        StatRow("Accel X", String.format("%.3f", tiltX))
-                        StatRow("Paddle X", String.format("%.3f", state.paddleX))
+                        StatRow("Tilt X", String.format("%.3f", tiltX))
+                        StatRow("Top Pad", String.format("%.3f", state.topPaddleX))
+                        StatRow("Bot Pad", String.format("%.3f", state.bottomPaddleX))
                         StatRow("Ball", String.format("%.3f, %.3f", state.ballX, state.ballY))
                         StatRow("Velocity", String.format("%.4f, %.4f", state.ballVx, state.ballVy))
+                        StatRow("Control", state.playerSide.name)
                     }
                 }
             }
@@ -185,7 +203,7 @@ fun TiltPongScreen(
                     val w = size.width
                     val h = size.height
 
-                    // Court centre line
+                    // Court horizontal centre line
                     drawLine(
                         color = CourtLine,
                         start = Offset(0f, h * 0.5f),
@@ -198,27 +216,51 @@ fun TiltPongScreen(
                         color = CourtLine,
                         radius = 60f,
                         center = Offset(w * 0.5f, h * 0.5f),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                        style = Stroke(width = 2f)
+                    )
+
+                    // Top paddle — horizontal bar
+                    val topActive = state.playerSide == PlayerSide.TOP
+                    val topPw = state.paddleWidth * w
+                    val topPh = state.paddleThickness * h
+                    val topPx = state.topPaddleX * w - topPw / 2
+                    val topPy = state.topPaddleY * h - topPh / 2
+
+                    drawRoundRect(
+                        color = if (topActive) ActivePaddleColor else InactivePaddleColor,
+                        topLeft = Offset(topPx, topPy),
+                        size = Size(topPw, topPh),
+                        cornerRadius = CornerRadius(topPh / 2, topPh / 2)
+                    )
+
+                    // Bottom paddle — horizontal bar
+                    val bottomActive = state.playerSide == PlayerSide.BOTTOM
+                    val botPw = state.paddleWidth * w
+                    val botPh = state.paddleThickness * h
+                    val botPx = state.bottomPaddleX * w - botPw / 2
+                    val botPy = state.bottomPaddleY * h - botPh / 2
+
+                    drawRoundRect(
+                        color = if (bottomActive) ActivePaddleColor else InactivePaddleColor,
+                        topLeft = Offset(botPx, botPy),
+                        size = Size(botPw, botPh),
+                        cornerRadius = CornerRadius(botPh / 2, botPh / 2)
+                    )
+
+                    // Subtle glow behind active paddle
+                    val activeX = if (topActive) state.topPaddleX else state.bottomPaddleX
+                    val activeY = if (topActive) state.topPaddleY else state.bottomPaddleY
+                    drawCircle(
+                        color = AccentGreen.copy(alpha = 0.06f),
+                        radius = state.paddleWidth * w * 0.35f,
+                        center = Offset(activeX * w, activeY * h)
                     )
 
                     // Ball
                     drawCircle(
                         color = BallColor,
-                        radius = state.ballRadius * w,
+                        radius = state.ballRadius * minOf(w, h),
                         center = Offset(state.ballX * w, state.ballY * h)
-                    )
-
-                    // Paddle
-                    val pw = state.paddleWidth * w
-                    val ph = state.paddleHeight * h
-                    val px = state.paddleX * w - pw / 2
-                    val py = state.paddleY * h
-
-                    drawRoundRect(
-                        color = PaddleColor,
-                        topLeft = Offset(px, py),
-                        size = Size(pw, ph),
-                        cornerRadius = CornerRadius(ph / 2, ph / 2)
                     )
                 }
 
@@ -263,7 +305,7 @@ fun TiltPongScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Tilt your device to move the paddle",
+                text = "Tilt your device to move the active paddle",
                 style = MaterialTheme.typography.bodyMedium.copy(color = SubtitleColor),
                 modifier = Modifier.padding(bottom = 16.dp)
             )
