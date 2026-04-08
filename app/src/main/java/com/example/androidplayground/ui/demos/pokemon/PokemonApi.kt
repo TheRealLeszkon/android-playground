@@ -56,7 +56,9 @@ object PokemonApi {
     }
 
     /**
-     * Returns a random Pokémon ID in the valid range.
+     * Returns a random Pokémon ID.
+     * @param gen1Only if true, restrict to Gen 1 (1–151)
      */
-    fun randomId(): Int = (1..1010).random()
+    fun randomId(gen1Only: Boolean = false): Int =
+        if (gen1Only) (1..151).random() else (1..1010).random()
 }

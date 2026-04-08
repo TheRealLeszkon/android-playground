@@ -36,10 +36,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -49,10 +52,15 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -61,6 +69,7 @@ import coil.compose.AsyncImage
 
 private val ScreenBg = Color(0xFFF9F9F9)
 private val CardBg = Color(0xFFFFFFFF)
+private val SilhouetteBg = Color(0xFFE8E0D0)   // warm neutral for silhouette contrast
 private val DarkSurface = Color(0xFF1C1B1F)
 private val AccentGreen = Color(0xFF3CDA84)
 private val AccentGreenDark = Color(0xFF006D3B)
@@ -76,6 +85,16 @@ fun PokemonGameScreen(
     viewModel: PokemonGameViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+
+    // Haptic feedback on guess result
+    LaunchedEffect(state.lastGuessResult) {
+        when (state.lastGuessResult) {
+            GuessResult.CORRECT -> playAcceptHaptic(context)
+            GuessResult.WRONG -> playRejectHaptic(context)
+            GuessResult.NONE -> {}
+        }
+    }
 
     Scaffold(
         containerColor = ScreenBg,
@@ -101,8 +120,12 @@ fun PokemonGameScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Streak counter
-            StreakBadge(streak = state.streak)
+            // Streak counter + Gen 1 toggle
+            StreakBadge(
+                streak = state.streak,
+                gen1Only = state.gen1Only,
+                onToggleGen1 = viewModel::toggleGen1Only
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -220,40 +243,74 @@ fun PokemonGameScreen(
 // ── Streak Badge ──
 
 @Composable
-private fun StreakBadge(streak: Int) {
-    Row(
+private fun StreakBadge(
+    streak: Int,
+    gen1Only: Boolean,
+    onToggleGen1: () -> Unit
+) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(CardBg)
             .padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Filled.LocalFireDepartment,
-                contentDescription = null,
-                tint = if (streak > 0) StreakColor else SubtitleColor.copy(alpha = 0.3f),
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = if (streak > 0) StreakColor else SubtitleColor.copy(alpha = 0.3f),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "STREAK",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        color = SubtitleColor,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.5.sp
+                    )
+                )
+            }
             Text(
-                "STREAK",
-                style = MaterialTheme.typography.labelMedium.copy(
-                    color = SubtitleColor,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.5.sp
+                "$streak",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = if (streak > 0) StreakColor else SubtitleColor
                 )
             )
         }
-        Text(
-            "$streak",
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = if (streak > 0) StreakColor else SubtitleColor
+
+        // Gen 1 toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Gen 1 Only (1–151)",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = SubtitleColor,
+                    fontWeight = FontWeight.Medium
+                )
             )
-        )
+            Switch(
+                checked = gen1Only,
+                onCheckedChange = { onToggleGen1() },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = AccentGreen,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFFDDDDDD)
+                )
+            )
+        }
     }
 }
 
@@ -272,7 +329,7 @@ private fun SpriteCard(
             .fillMaxWidth()
             .height(280.dp)
             .clip(RoundedCornerShape(24.dp))
-            .background(DarkSurface),
+            .background(if (isSilhouette) SilhouetteBg else DarkSurface),
         contentAlignment = Alignment.Center
     ) {
         when {
@@ -325,19 +382,6 @@ private fun SpriteCard(
                         ColorFilter.tint(Color.Black, BlendMode.SrcAtop)
                     } else null
                 )
-
-                // "?" overlay for silhouette mode
-                if (isSilhouette) {
-                    Text(
-                        "?",
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White.copy(alpha = 0.12f),
-                            fontSize = 120.sp
-                        ),
-                        textAlign = TextAlign.Center
-                    )
-                }
             }
         }
     }
@@ -430,4 +474,34 @@ private fun ActionButtons(
             Text("Reveal", fontWeight = FontWeight.Medium, fontSize = 13.sp)
         }
     }
+}
+
+// ── Haptic helpers ──
+
+private fun getVibrator(context: Context): Vibrator {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+        manager.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    }
+}
+
+/** Strong satisfying double-pulse for correct guess */
+private fun playAcceptHaptic(context: Context) {
+    try {
+        val vibrator = getVibrator(context)
+        val timings = longArrayOf(0, 60, 60, 80)
+        val amplitudes = intArrayOf(0, 200, 0, 255)
+        vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+    } catch (_: Exception) {}
+}
+
+/** Short sharp single buzz for wrong guess */
+private fun playRejectHaptic(context: Context) {
+    try {
+        val vibrator = getVibrator(context)
+        vibrator.vibrate(VibrationEffect.createOneShot(40, 180))
+    } catch (_: Exception) {}
 }

@@ -19,8 +19,12 @@ data class PokemonGameState(
     val guessedCorrectly: Boolean = false,
     val errorMessage: String = "",
     val isLoading: Boolean = true,
-    val networkError: Boolean = false
+    val networkError: Boolean = false,
+    val gen1Only: Boolean = false,
+    val lastGuessResult: GuessResult = GuessResult.NONE
 )
+
+enum class GuessResult { NONE, CORRECT, WRONG }
 
 class PokemonGameViewModel : ViewModel() {
 
@@ -35,7 +39,11 @@ class PokemonGameViewModel : ViewModel() {
     }
 
     fun updateGuess(guess: String) {
-        _state.value = _state.value.copy(userGuess = guess, errorMessage = "")
+        _state.value = _state.value.copy(userGuess = guess, errorMessage = "", lastGuessResult = GuessResult.NONE)
+    }
+
+    fun toggleGen1Only() {
+        _state.value = _state.value.copy(gen1Only = !_state.value.gen1Only)
     }
 
     fun submitGuess() {
@@ -54,7 +62,8 @@ class PokemonGameViewModel : ViewModel() {
                 guessedCorrectly = true,
                 streak = s.streak + 1,
                 errorMessage = "",
-                userGuess = ""
+                userGuess = "",
+                lastGuessResult = GuessResult.CORRECT
             )
             // Auto-advance after delay
             viewModelScope.launch {
@@ -63,7 +72,8 @@ class PokemonGameViewModel : ViewModel() {
             }
         } else {
             _state.value = s.copy(
-                errorMessage = "Wrong! Try again"
+                errorMessage = "Wrong! Try again",
+                lastGuessResult = GuessResult.WRONG
             )
         }
     }
@@ -137,10 +147,11 @@ class PokemonGameViewModel : ViewModel() {
         )
 
         viewModelScope.launch {
+            val gen1 = _state.value.gen1Only
             // Retry up to 3 times if sprite is null
             var data: PokemonData? = null
             repeat(3) {
-                data = PokemonApi.fetchPokemon(PokemonApi.randomId())
+                data = PokemonApi.fetchPokemon(PokemonApi.randomId(gen1))
                 if (data != null) return@repeat
             }
 
