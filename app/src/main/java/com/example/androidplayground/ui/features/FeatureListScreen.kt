@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,7 +56,8 @@ private data class FeatureItem(
 private val features = listOf(
     FeatureItem("Sensors", Icons.Outlined.Sensors, "Access device sensor data in real time", routeKey = "sensor_dashboard"),
     FeatureItem("Haptics", Icons.Outlined.Vibration, "Explore haptic feedback patterns"),
-    FeatureItem("Notifications", Icons.Outlined.Notifications, "Build rich notification channels")
+    FeatureItem("Notifications", Icons.Outlined.Notifications, "Build rich notification channels"),
+    FeatureItem("API Dashboard", Icons.Outlined.Cloud, "Send requests to any public API", routeKey = "api_dashboard")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

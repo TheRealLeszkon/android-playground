@@ -28,6 +28,7 @@ import com.example.androidplayground.ui.notifications.NotificationDashboardScree
 import com.example.androidplayground.ui.notifications.NotificationInfoScreen
 import com.example.androidplayground.ui.sensors.SensorDashboardScreen
 import com.example.androidplayground.ui.sensors.SensorInfoScreen
+import com.example.androidplayground.ui.apidashboard.ApiDashboardScreen
 
 private val ScreenBackground = Color(0xFFF9F9F9)
 private val AccentGreen = Color(0xFF3CDA84)
@@ -42,6 +43,7 @@ fun FeatureDetailScreen(
         featureName == "sensor_dashboard" -> SensorDashboardScreen(navController = navController)
         featureName == "Haptics" -> HapticLabScreen(navController = navController)
         featureName == "Notifications" -> NotificationDashboardScreen(navController = navController)
+        featureName == "api_dashboard" -> ApiDashboardScreen(navController = navController)
 
         featureName.startsWith("sensor_info:") -> {
             val type = featureName.substringAfter(":")

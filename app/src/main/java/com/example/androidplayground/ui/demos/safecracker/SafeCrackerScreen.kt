@@ -2,9 +2,6 @@ package com.example.androidplayground.ui.demos.safecracker
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -86,8 +83,6 @@ private val SubtitleColor = Color(0xFF49454F)
 private val DialRing = Color(0xFF2B2930)
 private val NotchColor = Color(0xFF555555)
 private val PointerColor = Color(0xFFEF5350)
-private val NearGlow = Color(0xFFFFB74D)
-private val ExactGlow = AccentGreen
 
 // ── Main screen ──
 
@@ -101,10 +96,9 @@ fun SafeCrackerScreen(
     val context = LocalContext.current
     val textMeasurer = rememberTextMeasurer()
 
-    // Track notch for tick haptics
     var lastProximity by remember { mutableIntStateOf(0) }
 
-    // Continuous proximity haptics while near/exact
+    // Continuous proximity haptics — haptics are the PRIMARY feedback
     LaunchedEffect(state.dialValue, state.step) {
         while (true) {
             val prox = viewModel.getProximity()
@@ -113,7 +107,7 @@ fun SafeCrackerScreen(
                 Proximity.NEAR -> viewModel.playNearHaptic(context)
                 Proximity.FAR -> {}
             }
-            delay(if (prox == Proximity.EXACT) 300L else 500L)
+            delay(if (prox == Proximity.EXACT) 250L else 450L)
         }
     }
 
@@ -152,25 +146,29 @@ fun SafeCrackerScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Step indicator
             StepIndicator(step = state.step, phase = state.phase)
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Direction hint
             DirectionHint(state = state)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Dial
+            // Dial — no visual proximity cues, haptics only
             DialCanvas(
                 state = state,
                 textMeasurer = textMeasurer,
+                onDragStart = { x, y, cx, cy ->
+                    viewModel.onDragStart(x, y, cx, cy)
+                },
                 onDrag = { x, y, cx, cy ->
-                    viewModel.onDialTouch(x, y, cx, cy)
+                    viewModel.onDialDrag(x, y, cx, cy)
                     if (viewModel.hasNotchChanged()) {
                         viewModel.playTickHaptic(context)
                     }
+                },
+                onDragEnd = {
+                    viewModel.onDragEnd()
                 },
                 onLockClick = {
                     val result = viewModel.tryLock()
@@ -184,17 +182,14 @@ fun SafeCrackerScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Current value display
             ValueDisplay(state = state)
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Status message
             if (state.lockMessage.isNotEmpty()) {
                 StatusMessage(state = state)
             }
 
-            // Win overlay
             AnimatedVisibility(
                 visible = state.phase == GamePhase.WON,
                 enter = fadeIn() + scaleIn(),
@@ -208,7 +203,7 @@ fun SafeCrackerScreen(
     }
 }
 
-// ── Step indicator (1/3, 2/3, 3/3) ──
+// ── Step indicator ──
 
 @Composable
 private fun StepIndicator(step: Int, phase: GamePhase) {
@@ -275,44 +270,17 @@ private fun DirectionHint(state: SafeCrackerState) {
     )
 }
 
-// ── Canvas dial ──
+// ── Canvas dial — pure mechanical, no color hints ──
 
 @Composable
 private fun DialCanvas(
     state: SafeCrackerState,
     textMeasurer: TextMeasurer,
+    onDragStart: (Float, Float, Float, Float) -> Unit,
     onDrag: (Float, Float, Float, Float) -> Unit,
+    onDragEnd: () -> Unit,
     onLockClick: () -> Unit
 ) {
-    val proximity = when {
-        state.phase == GamePhase.WON -> Proximity.FAR
-        state.step >= state.targetPins.size -> Proximity.FAR
-        else -> {
-            val diff = kotlin.math.abs(state.dialValue - state.targetPins[state.step])
-            when {
-                diff <= 2 -> Proximity.EXACT
-                diff <= 5 -> Proximity.NEAR
-                else -> Proximity.FAR
-            }
-        }
-    }
-
-    val glowAlpha by animateFloatAsState(
-        targetValue = when (proximity) {
-            Proximity.EXACT -> 0.6f
-            Proximity.NEAR -> 0.35f
-            Proximity.FAR -> 0f
-        },
-        animationSpec = tween(200),
-        label = "glow"
-    )
-
-    val glowColor = when (proximity) {
-        Proximity.EXACT -> ExactGlow
-        Proximity.NEAR -> NearGlow
-        Proximity.FAR -> Color.Transparent
-    }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -321,12 +289,25 @@ private fun DialCanvas(
             .background(DarkSurface)
             .pointerInput(state.phase) {
                 if (state.phase == GamePhase.WON) return@pointerInput
-                detectDragGestures { change, _ ->
-                    change.consume()
-                    val cx = size.width / 2f
-                    val cy = size.height / 2f
-                    onDrag(change.position.x, change.position.y, cx, cy)
-                }
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        val cx = size.width / 2f
+                        val cy = size.height / 2f
+                        onDragStart(offset.x, offset.y, cx, cy)
+                    },
+                    onDrag = { change, _ ->
+                        change.consume()
+                        val cx = size.width / 2f
+                        val cy = size.height / 2f
+                        onDrag(change.position.x, change.position.y, cx, cy)
+                    },
+                    onDragEnd = {
+                        onDragEnd()
+                    },
+                    onDragCancel = {
+                        onDragEnd()
+                    }
+                )
             },
         contentAlignment = Alignment.Center
     ) {
@@ -336,14 +317,8 @@ private fun DialCanvas(
             val outerR = size.minDimension * 0.44f
             val innerR = outerR * 0.72f
 
-            // Glow ring
-            if (glowAlpha > 0f) {
-                drawCircle(
-                    color = glowColor.copy(alpha = glowAlpha * 0.15f),
-                    radius = outerR + 18f,
-                    center = Offset(cx, cy)
-                )
-            }
+            // The accumulated rotation drives the entire dial face
+            val rotationRad = Math.toRadians(state.dialRotation.toDouble())
 
             // Outer ring
             drawCircle(
@@ -361,12 +336,15 @@ private fun DialCanvas(
                 style = Stroke(width = 3f)
             )
 
-            // Notches (90 notches → every 4°)
+            // Notches — rotate with the dial
             for (i in 0 until 90) {
-                val notchAngle = Math.toRadians((i * 4).toDouble())
+                val baseAngle = Math.toRadians((i * 4).toDouble())
+                val notchAngle = baseAngle + rotationRad
                 val isMajor = i % 10 == 0
                 val isMinor5 = i % 5 == 0
-                val startR = if (isMajor) outerR - 20f else if (isMinor5) outerR - 14f else outerR - 9f
+                val startR = if (isMajor) outerR - 20f
+                    else if (isMinor5) outerR - 14f
+                    else outerR - 9f
                 val endR = outerR - 3f
 
                 val startX = cx + startR * cos(notchAngle).toFloat()
@@ -376,7 +354,7 @@ private fun DialCanvas(
 
                 drawLine(
                     color = if (isMajor) Color.White.copy(alpha = 0.7f)
-                    else NotchColor.copy(alpha = 0.5f),
+                        else NotchColor.copy(alpha = 0.5f),
                     start = Offset(startX, startY),
                     end = Offset(endX, endY),
                     strokeWidth = if (isMajor) 2.5f else 1.2f,
@@ -384,19 +362,19 @@ private fun DialCanvas(
                 )
             }
 
-            // Number labels at major notches (0, 10, 20 ... 80)
-            drawDialNumbers(cx, cy, outerR, textMeasurer)
+            // Number labels — rotate with the dial
+            drawDialNumbers(cx, cy, outerR, rotationRad, textMeasurer)
 
-            // Fixed pointer at top (12 o'clock → -90° in standard coords)
+            // Fixed pointer at 12 o'clock (does NOT rotate)
             drawPointer(cx, cy, outerR)
 
-            // Rotating indicator mark at current angle
-            val indicatorAngle = Math.toRadians(state.angle.toDouble())
+            // Small indicator dot on the dial face (rotates with dial)
+            val indicatorAngle = rotationRad  // 0° of the dial rotated by accumulated angle
             val indR = innerR + (outerR - innerR) * 0.5f
             val indX = cx + indR * cos(indicatorAngle).toFloat()
             val indY = cy + indR * sin(indicatorAngle).toFloat()
             drawCircle(
-                color = AccentGreen,
+                color = AccentGreen.copy(alpha = 0.7f),
                 radius = 5f,
                 center = Offset(indX, indY)
             )
@@ -411,7 +389,6 @@ private fun DialCanvas(
 }
 
 private fun DrawScope.drawPointer(cx: Float, cy: Float, outerR: Float) {
-    // Triangle pointer at top (pointing inward)
     val tipY = cy - outerR + 8f
     val baseY = cy - outerR - 16f
     val path = androidx.compose.ui.graphics.Path().apply {
@@ -422,7 +399,6 @@ private fun DrawScope.drawPointer(cx: Float, cy: Float, outerR: Float) {
     }
     drawPath(path, color = PointerColor)
 
-    // Small line extension
     drawLine(
         color = PointerColor,
         start = Offset(cx, baseY - 2f),
@@ -433,12 +409,14 @@ private fun DrawScope.drawPointer(cx: Float, cy: Float, outerR: Float) {
 }
 
 private fun DrawScope.drawDialNumbers(
-    cx: Float, cy: Float, outerR: Float, textMeasurer: TextMeasurer
+    cx: Float, cy: Float, outerR: Float, rotationRad: Double, textMeasurer: TextMeasurer
 ) {
     val labelR = outerR - 34f
     for (i in 0..8) {
         val value = i * 10
-        val angle = Math.toRadians((value * 4).toDouble()) // value→angle: value / 90 * 360 = value*4
+        val baseAngle = Math.toRadians((value * 4).toDouble())
+        val angle = baseAngle + rotationRad
+
         val lx = cx + labelR * cos(angle).toFloat()
         val ly = cy + labelR * sin(angle).toFloat()
 
@@ -457,7 +435,7 @@ private fun DrawScope.drawDialNumbers(
     }
 }
 
-// ── Lock button (center of dial) ──
+// ── Lock button ──
 
 @Composable
 private fun LockButton(
