@@ -27,6 +27,7 @@ import com.example.androidplayground.ui.demos.orientation.DeviceOrientationScree
 import com.example.androidplayground.ui.demos.safecracker.SafeCrackerScreen
 import com.example.androidplayground.ui.demos.tiltpong.TiltPongScreen
 import com.example.androidplayground.ui.demos.pokemon.PokemonGameScreen
+import com.example.androidplayground.ui.demos.lightsensor.LightSensorGameScreen
 
 private val ScreenBackground = Color(0xFFF9F9F9)
 private val AccentGreen = Color(0xFF3CDA84)
@@ -42,6 +43,7 @@ fun DemoDetailScreen(
         "Device Orientation" -> DeviceOrientationScreen(navController = navController)
         "Safe Cracker" -> SafeCrackerScreen(navController = navController)
         "Who's That Pokémon" -> PokemonGameScreen(navController = navController)
+        "Light Sensor Game" -> LightSensorGameScreen(navController = navController)
         else -> DemoDetailPlaceholder(demoName = demoName, navController = navController)
     }
 }
